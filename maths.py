@@ -62,7 +62,6 @@ class OriginalEquation(Equation):
         else:
             print('\nEquation  --->  '+self.layout.format(self.term_states[0], self.term_states[1],\
                                           self.term_states[2], self.div)+'\n')
-        print(self.result)
 
     def update(self, guess):
         if guess == self.result:
