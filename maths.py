@@ -1,0 +1,208 @@
+import sys, time, math, random
+
+rand = random.randrange
+start_time = time.time()
+times_file = 'times.txt'
+
+commands_msg = "\nCommands:\n\t"\
+               "'s' - stop playing\n\t"\
+               "'w' - wipe saves\n\t"\
+               "'r' - restart\n\t"\
+               "'R' - rules\n\t"\
+               "'c' - commands\n\t"\
+               "'t' - time spent\n\t"\
+               "'h' - fastest time for this equation\n\t"\
+               "'f' - 10 fastest times for this equation\n\t"
+
+found_term_msg = '\nGot one!\n'
+wrong_guess_msg = '\nWrong! Guess again. You have '
+win_msg = "\nPlay again?\n('y' for Yes, 'n' for No)\n"
+lose_msg = "\nYou've run out of lives! Try again?\n"\
+           "('y' for Yes, 'n' for No)\n"
+
+class Equation:
+    rules_msg = '\nRules:\n\t'\
+                '1: You get 3 lives\n\t'\
+                '2: You can input each term seperately to change the format of the equation\n\t'\
+                '3: You must guess the answer correctly to 2 decimal places\n\t'\
+                '4: You are being timed, your final time will be saved\n\t'\
+                "5: To view the commands list, enter 'c'\n"
+
+    def __init__(self):
+        self.randomise()
+        self.final_layout = False
+        self.tries = 3
+        print(self.rules_msg)
+    
+class OriginalEquation(Equation):
+    layout = "({0} + {1} + {2}) / {3}"
+    layout2 = "{0}/{1}"
+    
+    def randomise(self):
+        term1_A = rand(11, 100)
+        term1_B = rand(1001, 10000)
+        term2_A = rand(101, 1000)
+        term2_B = rand(101, 1000)
+        term3_A = rand(11, 100)
+        term3_B = rand(1001, 10000)
+        res1 = term1_A * term1_B
+        res2 = term2_A * term2_B
+        res3 = term3_A * term3_B
+        self.final_res = (res1 + res2 + res3)
+        self.div   = rand(2, 10)
+        self.result = round(self.final_res/self.div, 2)
+        self.term_states = ["({0} x {1})".format(term1_A, term1_B),\
+                            "({0} x {1})".format(term2_A, term2_B),\
+                            "({0} x {1})".format(term3_A, term3_B)]
+        self.results = (res1, res2, res3)
+        
+    def show(self):
+        if self.final_layout:
+            print('\nEquation  --->  '+self.layout2.format(self.results[3], self.div) + '\n')
+        else:
+            print('\nEquation  --->  '+self.layout.format(self.term_states[0], self.term_states[1],\
+                                          self.term_states[2], self.div)+'\n')
+        print(self.result)
+
+    def update(self, guess):
+        if guess == self.result:
+            won()
+        elif guess == self.final_res:
+            self.final_layout = True
+            play()
+        for i in range(len(self.results)):
+            if guess == self.results[i]:
+                self.term_states[i] = self.results[i]
+                print(found_term_msg)
+                play()
+        wrong_guess()
+
+class Time:
+    def __init__(self):
+        self.seconds = math.floor(time.time() - start_time)
+        self.times = []
+        self.time = time_format(self.seconds)
+
+    def highscore(self):
+        with open(times_file) as times:
+            highscore = times.readline().rstrip()
+            if highscore == '':
+                return 0
+            else:
+                return int(highscore)
+
+    def save(self):
+        self.times.clear()
+        with open(times_file) as times:
+            for time in times:
+                self.times.append(int(time.rstrip()))
+        self.times.append(self.seconds)
+        self.times.sort()
+        if self.times[0] < self.highscore():
+            print('New highscore!\nTime: {0}'.format(self.time))
+        else:
+            print('Time: {0}'.format(self.time))
+        with open(times_file, 'w') as times:
+            for sorted_time in self.times:
+                times.write(str(sorted_time) + '\n')
+
+def wrong_guess():
+    equation.tries -= 1
+    if equation.tries <= 0:
+        restart_prompt(lose_msg)
+    else:
+        if equation.tries > 1:
+            print(wrong_guess_msg + str(equation.tries) + ' tries left')
+        else:
+            print(wrong_guess_msg + str(equation.tries) + ' try left')
+        play()
+
+def time_format(seconds):
+    minutes = math.floor(seconds / 60)
+    if minutes:
+        seconds -= minutes * 60
+        if minutes == 1:
+            time = "{0} min {1} secs".format(minutes, seconds)
+        else:
+            time = "{0} mins {1} secs".format(minutes, seconds)
+    else:
+        time = str(seconds) + ' secs'
+    return time
+
+def restart_prompt(msg):
+    inp = input(msg)
+    if inp == 'y':
+        restart()
+    elif inp == 'n':
+        sys.exit()
+    else:
+        restart_prompt(msg)
+    
+def guess():
+    try:
+        guess = input("Guess: ")
+        commands(guess)
+        guess = float(guess)
+        return guess
+    except ValueError:
+        play()
+        
+def play():
+    equation.show()
+    equation.update(guess())
+    
+def commands(inp):
+    if inp == 's':
+        sys.exit()
+    elif inp == 'w':
+        open(times_file, 'w').close()
+        print('\nAll clear!')
+        play()
+    elif inp == 'r':
+        restart()
+    elif inp == 'R':
+        print(equation.rules_msg)
+        play()
+    elif inp == 'c':
+        print(commands_msg)
+        play()
+    elif inp == 't':
+        check_time = Time()
+        print('\n' + check_time.time)
+    elif inp == 'h':
+        best = Time()
+        time = time_format(best.highscore())
+        if time:
+            print('Highscore: {0}'.format(time))
+        else:
+            print('No saved scores yet')
+    elif inp == 'f':
+        fastest_times()
+        
+def fastest_times():
+    print('Fastest times:')
+    with open(times_file) as times:
+        best = times.readline().rstrip()
+        if best == '':
+            print('None saved yet')
+        else:
+            print(time_format(int(best)))
+            for i in range(10):
+                time = time_format(int(times.readline()))
+                print(time)
+                    
+def restart():
+    global start_time
+    equation.randomise()
+    equation.tries = 3
+    start_time = time.time()
+    play()
+       
+def won():
+    win_time = Time()
+    win_time.save()
+    restart_prompt(win_msg)
+    sys.exit()
+
+equation = OriginalEquation()
+play()
