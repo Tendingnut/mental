@@ -1,4 +1,4 @@
-import sys, time, math, random
+import sys, time, math, random, decimal
 
 rand = random.randrange
 start_time = time.time()
@@ -50,15 +50,20 @@ class OriginalEquation(Equation):
         res3 = term3_A * term3_B
         self.final_res = (res1 + res2 + res3)
         self.div   = rand(2, 10)
-        self.result = round(self.final_res/self.div, 2)
+        self.result = round_2dp(self.final_res/self.div)
         self.term_states = ["({0} x {1})".format(term1_A, term1_B),\
                             "({0} x {1})".format(term2_A, term2_B),\
                             "({0} x {1})".format(term3_A, term3_B)]
-        self.results = (res1, res2, res3)
+        self.results = [res1, res2, res3]
+        temp_results = [res1, res2, res3, self.result]
+        if len(temp_results) != len(set(temp_results)):
+            self.randomise() #so the answer to 2 different terms isnt the same
+        
+        
         
     def show(self):
         if self.final_layout:
-            print('\nEquation  --->  '+self.layout2.format(self.results[3], self.div) + '\n')
+            print('\nEquation  --->  '+self.layout2.format(self.final_res, self.div) + '\n')
         else:
             print('\nEquation  --->  '+self.layout.format(self.term_states[0], self.term_states[1],\
                                           self.term_states[2], self.div)+'\n')
@@ -105,6 +110,21 @@ class Time:
             for sorted_time in self.times:
                 times.write(str(sorted_time) + '\n')
 
+def round_2dp(result):
+    result = str(result)
+    d = result.index('.')
+    if len(result) >= (d + 4):
+        dp3 = int(result[d + 3])
+        dp2= int(result[d + 2])
+        if dp3 == 5:
+            dp2 += 1
+            result = result[:d + 2] + str(dp2)
+            result = float(result)
+            result = round(result, 2)
+    else:
+         result = round(float(result), 2)
+    return result
+                
 def wrong_guess():
     equation.tries -= 1
     if equation.tries <= 0:
@@ -195,6 +215,7 @@ def restart():
     equation.randomise()
     equation.tries = 3
     start_time = time.time()
+    equation.final_layout = False
     play()
        
 def won():
